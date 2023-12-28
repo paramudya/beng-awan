@@ -32,20 +32,20 @@ def find_soup(url):
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     title=soup.find_all('title', limit=1)[0].string
-
-    if not title.lower() == 'waiting page': #bikin komponen
-        return soup
-    else: 
-        wait_dur=60*no_of_try
-        no_of_try+=2
-        print('nunggu',wait_dur,'seconds for try number',no_of_try)
-        time.sleep(wait_dur)
+    train_elements=soup.find_all('div', class_='name')
+    # print(train_elements)
+    if not title.lower() == 'waiting page' or len(train_elements)>0: #bikin komponen
+        return train_elements
+     
+    wait_dur=60*no_of_try
+    no_of_try+=2
+    print('nunggu',wait_dur,'seconds for try number',no_of_try)
+    time.sleep(wait_dur)
   
 def main(url):
   stop=0
   access_time=str(datetime.now())[:19]
-  soup=find_soup(url)       
-  train_elements = soup.find_all('div', class_='name')
+  train_elements=find_soup(url)       
   df=pd.DataFrame()
   for element in train_elements:
       # if train_name in element.text:
