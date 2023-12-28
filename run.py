@@ -9,6 +9,10 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 ring_repeat=5
 nama_kereta_dicari='Bengawan'
+urls={
+    'berangkat_26':"https://booking.kai.id/search?origination=u%2FdpZtuBY%2FMLjHWA6HQQyQ%3D%3D&destination=niaOzwDtEN%2B0isrzPdZtsg%3D%3D&tanggal=oQ7Kp43w21OuuPymVZs74elFtXmv%2FcOltT%2Bqy7fdmgQ%3D&adult=MnFy%2BP2MvzZq0fSHyM16Vw%3D%3D&infant=E%2FKDC%2BSur3Kyls7NptMgcg%3D%3D&book_type="
+   ,'pulang_28':"https://booking.kai.id/search?origination=VthgI41W1ksmuUuxhNY5yQ%3D%3D&destination=HGQWnwgcp1bxJ%2BJ7TFJ0UA%3D%3D&tanggal=d%2FeFm1UubAi2rFZSVBWxadkCqBmxyLC1GOGCy%2BXFT8Q%3D&adult=GTd27fsGEl79bnZL4lupig%3D%3D&infant=DwEeh8USIyXiqKqyFyF7jQ%3D%3D&book_type="
+}
 
 def notify(title, msg,type_msg='success'):
     requests.post('https://api.mynotifier.app', 
@@ -17,34 +21,34 @@ def notify(title, msg,type_msg='success'):
         "description": msg,    
         "type": type_msg, # info, error, warning or success
       })
-stop=0
-while stop==0:
-
-  no_of_try=0
+    
+def ada(nama,kelas,tanggal,avail,dept,arvl):
+    return f"{nama} ({kelas}) untuk {tanggal} sisa kursi: {avail}\n{dept}->{arvl}"
+def habis(nama,tanggal):
+    return f"{nama} habis untuk {tanggal}"
+def find_soup(url):
+  no_of_try=1
   while 1:
-      URL = "https://booking.kai.id/search?origination=u%2FdpZtuBY%2FMLjHWA6HQQyQ%3D%3D&destination=niaOzwDtEN%2B0isrzPdZtsg%3D%3D&tanggal=oQ7Kp43w21OuuPymVZs74elFtXmv%2FcOltT%2Bqy7fdmgQ%3D&adult=MnFy%2BP2MvzZq0fSHyM16Vw%3D%3D&infant=E%2FKDC%2BSur3Kyls7NptMgcg%3D%3D&book_type="
-      page = requests.get(URL)
-      access_time=str(datetime.now())[:19]
-      soup = BeautifulSoup(page.content, "html.parser")
-      title=soup.find_all('title', limit=1)[0].string
-      no_of_try+=1
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, "html.parser")
+    title=soup.find_all('title', limit=1)[0].string
+
+    if not title.lower() == 'waiting page': #bikin komponen
+        return soup
+    else: 
+        wait_dur=60*no_of_try
+        no_of_try+=2
+        print('nunggu',wait_dur,'seconds for try number',no_of_try)
+        time.sleep(wait_dur)
   
-      if not title.lower() == 'waiting page': #bikin komponen
-        #   print('LOLOSSS!')
-  #         no_of_try=0
-          break
-      else: 
-          wait_dur=60*no_of_try
-          print('nunggu',wait_dur,'seconds for try number',no_of_try)
-          time.sleep(wait_dur)
-          
+def main(url):
+  stop=0
+  access_time=str(datetime.now())[:19]
+  soup=find_soup(url)       
   train_elements = soup.find_all('div', class_='name')
   df=pd.DataFrame()
-  # Print the relevant information for each matching element
   for element in train_elements:
       # if train_name in element.text:
-          # print(element.find_next(class_='station-start'))
-          # Extract information for each train card
           train_info = pd.DataFrame({
               'Date': element.find_next(class_='date-start').text.strip(),
               'Name': element.text.strip(),
@@ -70,8 +74,8 @@ while stop==0:
       if row['Availability']>'0': #!!!!!!!!!!!!1
           print(f'{time_str} TERSEDIA. {msg}') 
           
-          msg=f"{row['Name']} sisa kursi: {row['Availability']}\n{row['Departure Station']}->{row['Arrival Station']}"              
-          notify(f'{nama_kereta_dicari.upper()} ADA COY',msg)
+          msg=f" sisa kursi: {row['Availability']}\n{row['Departure Station']}->{row['Arrival Station']}"              
+          notify(f'{nama_kereta_dicari.upper()} ADA COY',ada(row['Name'],row['Class'],df.iloc[0,0],row['Availability'],row['Departure Station'],row['Arrival Station']))
           print(row)  
           
           i_ring=0
@@ -80,6 +84,14 @@ while stop==0:
             time.sleep(10)
           stop=1
   if stop==0:
-      print(f'''{time_str} {nama_kereta_dicari} habis untuk {df.iloc[0,0]}''')
+      print(f'''{time_str} {habis(nama_kereta_dicari,df.iloc[0,0])}''')
+  return stop
 
-  time.sleep(300)
+stops={key: 0 for key in urls.keys()}
+while sum(stops.values())<len(urls): #all stops=0
+  for url_key in urls.keys():   
+    if stops[url_key]==0:
+      stops[url_key]=main(urls[url_key])
+    time.sleep(60) #delay between each url
+
+  time.sleep(300) #delay between each session
