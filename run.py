@@ -67,7 +67,7 @@ def find_soup(url):
     print('nunggu',wait_dur,'seconds for try number',no_of_try)
     time.sleep(wait_dur)
   
-def main(url,nama_kereta_lst,stops_name={key: 0 for key in nama_kereta_lst}):
+def main(url,nama_kereta_lst,stops_name):
   stop=0
   print('masuk main')
   access_time=str(datetime.now())[:19]
@@ -97,9 +97,10 @@ def main(url,nama_kereta_lst,stops_name={key: 0 for key in nama_kereta_lst}):
                               )
   time_str=f'access time: {access_time}.'
 
-  # stops_name={key: 0 for key in nama_kereta_lst}
+  # stops_name={key: 0 for key in nama_kereta_lst} #defaulted in the input
   # for nama_kereta in nama_kereta_lst:
   for nama_kereta in [name for name,stop in stops_name.items()  if stop==0]: #only 
+    # stops_name[nama_kereta]=0
     for i,row in df[df['Name'].str[:5].str.lower()==nama_kereta[:5]].iterrows(): #matching method needs serious care. first 5 leters accounting name as short as progo
         if row['Availability']>'0': #!!!!!!!!!!!!1
             print(f'{time_str} TERSEDIA. {msg}') 
@@ -114,16 +115,17 @@ def main(url,nama_kereta_lst,stops_name={key: 0 for key in nama_kereta_lst}):
             #what happens if the said name is available (stop = 1)
             stops_name[nama_kereta]=1
 
-    if stop==0:
+    if stops_name[nama_kereta]==0:
         print(f'''{time_str} {habis(nama_kereta,df.iloc[0,0])}''')
-  return stop
+  return stop,stops_name
 
 stops_url={key: 0 for key in urls_list}
+stops_name_ofurl={}
 while 1: #loop url
   for url in [url for url,stop in stops_url.items()  if stop==0]: #only 
     # if stops_url[url]==0:
-    if 
-    stops_url[url],stops_name=main(url,nama_kereta_dicari_lst,stops_name)
+    stops_name_ofurl[url]={key: 0 for key in nama_kereta_dicari_lst} #nama kereta dicari lst is gonna be unique for next iter, but for now this will do
+    stops_url[url],stops_name_ofurl[url]=main(url,nama_kereta_dicari_lst,stops_name_ofurl[url])
     time.sleep(60) #delay between each url
 
   if sum(stops_url.values())<len(urls_list):
